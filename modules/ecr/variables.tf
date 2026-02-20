@@ -16,7 +16,8 @@ variable "scan_on_push" {
 }
 
 variable "tags" {
-  description = "Tags to apply to the repository"
+  description = "Tags to apply to the repository level"
   type        = map(string)
   default     = {}
+
 }
