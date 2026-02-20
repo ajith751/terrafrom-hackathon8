@@ -139,21 +139,34 @@ resource "aws_apigatewayv2_route" "appointment_by_patient" {
 }
 
 # Stage - $default is the default stage, auto_deploy ensures changes are deployed
+# Must be created after routes so deployment includes all routes
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.main.id
   name        = "$default"
   auto_deploy = true
 
+  depends_on = [
+    aws_apigatewayv2_route.patient_root,
+    aws_apigatewayv2_route.patient_health,
+    aws_apigatewayv2_route.patient_list,
+    aws_apigatewayv2_route.patient_create,
+    aws_apigatewayv2_route.patient_get,
+    aws_apigatewayv2_route.appointment_list,
+    aws_apigatewayv2_route.appointment_create,
+    aws_apigatewayv2_route.appointment_get,
+    aws_apigatewayv2_route.appointment_by_patient,
+  ]
+
   tags = local.common_tags
 }
 
-# Lambda permissions - allow API Gateway to invoke Lambdas
+# Lambda permissions - allow API Gateway to invoke Lambdas (include stage for $default)
 resource "aws_lambda_permission" "patient_api" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
   function_name = module.lambda["patient"].function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
+  source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/${aws_apigatewayv2_stage.default.name}/*"
 }
 
 resource "aws_lambda_permission" "appointment_api" {
@@ -161,5 +174,5 @@ resource "aws_lambda_permission" "appointment_api" {
   action        = "lambda:InvokeFunction"
   function_name = module.lambda["appointment"].function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
+  source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/${aws_apigatewayv2_stage.default.name}/*"
 }
