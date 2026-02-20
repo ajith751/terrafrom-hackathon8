@@ -53,14 +53,10 @@ module "lambda" {
   tags = local.common_tags
 }
 
-# API Gateway - created from openapi.yaml (single source of truth)
+# API Gateway HTTP API - explicit integrations and routes
 resource "aws_apigatewayv2_api" "main" {
   name          = "${var.project_name}-api-${var.environment}"
   protocol_type = "HTTP"
-  body = templatefile("${path.module}/openapi.yaml", {
-    patient_lambda_invoke_arn     = module.lambda["patient"].invoke_arn
-    appointment_lambda_invoke_arn = module.lambda["appointment"].invoke_arn
-  })
 
   cors_configuration {
     allow_origins = ["*"]
@@ -71,6 +67,78 @@ resource "aws_apigatewayv2_api" "main" {
   tags = local.common_tags
 }
 
+# Lambda integrations - explicitly attach Lambdas to API Gateway
+resource "aws_apigatewayv2_integration" "patient" {
+  api_id                 = aws_apigatewayv2_api.main.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.lambda["patient"].invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_integration" "appointment" {
+  api_id                 = aws_apigatewayv2_api.main.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = module.lambda["appointment"].invoke_arn
+  payload_format_version = "2.0"
+}
+
+# Routes - Patient service
+resource "aws_apigatewayv2_route" "patient_root" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /"
+  target    = "integrations/${aws_apigatewayv2_integration.patient.id}"
+}
+
+resource "aws_apigatewayv2_route" "patient_health" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /health"
+  target    = "integrations/${aws_apigatewayv2_integration.patient.id}"
+}
+
+resource "aws_apigatewayv2_route" "patient_list" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /patients"
+  target    = "integrations/${aws_apigatewayv2_integration.patient.id}"
+}
+
+resource "aws_apigatewayv2_route" "patient_create" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "POST /patients"
+  target    = "integrations/${aws_apigatewayv2_integration.patient.id}"
+}
+
+resource "aws_apigatewayv2_route" "patient_get" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /patients/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.patient.id}"
+}
+
+# Routes - Appointment service
+resource "aws_apigatewayv2_route" "appointment_list" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /appointments"
+  target    = "integrations/${aws_apigatewayv2_integration.appointment.id}"
+}
+
+resource "aws_apigatewayv2_route" "appointment_create" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "POST /appointments"
+  target    = "integrations/${aws_apigatewayv2_integration.appointment.id}"
+}
+
+resource "aws_apigatewayv2_route" "appointment_get" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /appointments/{id}"
+  target    = "integrations/${aws_apigatewayv2_integration.appointment.id}"
+}
+
+resource "aws_apigatewayv2_route" "appointment_by_patient" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "GET /appointments/patient/{patientId}"
+  target    = "integrations/${aws_apigatewayv2_integration.appointment.id}"
+}
+
+# Stage - $default is the default stage, auto_deploy ensures changes are deployed
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.main.id
   name        = "$default"
@@ -79,6 +147,7 @@ resource "aws_apigatewayv2_stage" "default" {
   tags = local.common_tags
 }
 
+# Lambda permissions - allow API Gateway to invoke Lambdas
 resource "aws_lambda_permission" "patient_api" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
