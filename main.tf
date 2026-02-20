@@ -50,10 +50,6 @@ module "lambda" {
     NODE_ENV = var.environment
   }
 
-  # Resource policy: allow API Gateway to invoke Lambda (Lambda → Configuration → Permissions)
-  allow_api_gateway_invoke  = true
-  api_gateway_execution_arn = aws_apigatewayv2_api.main.execution_arn
-
   tags = local.common_tags
 }
 
@@ -176,5 +172,19 @@ resource "aws_apigatewayv2_stage" "default" {
   tags = local.common_tags
 }
 
-# Lambda resource policy (API Gateway invoke) is in modules/lambda-container
-# Shows in Lambda Console: Configuration → Permissions → Resource-based policy statements
+# Lambda resource policy - allows API Gateway to invoke (Lambda → Configuration → Permissions)
+resource "aws_lambda_permission" "patient" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.lambda["patient"].function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "appointment" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = module.lambda["appointment"].function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
+}

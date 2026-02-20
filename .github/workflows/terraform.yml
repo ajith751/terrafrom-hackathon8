@@ -66,16 +66,16 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -target=module.ecr -var-file=environments/dev.tfvars -auto-approve
 
-      - name: Push placeholder images to ECR
+      - name: Build and push Lambda images to ECR
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
         run: |
           ECR_REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com
           aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-          docker pull public.ecr.aws/lambda/nodejs:20
+          docker build -t lambda-image ./lambda
           for repo in healthcare-microservices-patient-service healthcare-microservices-appointment-service; do
-            docker tag public.ecr.aws/lambda/nodejs:20 ${ECR_REGISTRY}/${repo}:latest
+            docker tag lambda-image ${ECR_REGISTRY}/${repo}:latest
             docker push ${ECR_REGISTRY}/${repo}:latest
           done
 

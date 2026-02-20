@@ -28,6 +28,10 @@ resource "aws_lambda_function" "this" {
   package_type  = "Image"
   image_uri     = var.image_uri
 
+  image_config {
+    command = ["index.handler"]
+  }
+
   timeout     = var.timeout
   memory_size = var.memory_size
 
@@ -43,16 +47,4 @@ resource "aws_lambda_function" "this" {
   }
 
   tags = var.tags
-}
-
-# Resource policy - allows API Gateway to invoke this Lambda
-# Shows in Lambda Console: Configuration → Permissions → Resource-based policy
-resource "aws_lambda_permission" "api_gateway" {
-  count = var.allow_api_gateway_invoke ? 1 : 0
-
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.this.function_name
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${var.api_gateway_execution_arn}/*/*"
 }
