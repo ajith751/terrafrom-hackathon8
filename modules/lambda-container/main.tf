@@ -48,7 +48,7 @@ resource "aws_lambda_function" "this" {
 # Resource policy - allows API Gateway to invoke this Lambda
 # Shows in Lambda Console: Configuration → Permissions → Resource-based policy
 resource "aws_lambda_permission" "api_gateway" {
-  count = var.allow_api_gateway_invoke && var.api_gateway_execution_arn != "" ? 1 : 0
+  count = var.allow_api_gateway_invoke ? 1 : 0
 
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
