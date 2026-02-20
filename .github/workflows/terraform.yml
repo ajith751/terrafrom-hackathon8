@@ -80,5 +80,11 @@ jobs:
           done
 
       - name: Terraform apply
+        id: apply
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -var-file=environments/dev.tfvars -auto-approve
+        continue-on-error: true
+
+      - name: Terraform apply (replace API on route conflict)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && failure() && steps.apply.outcome == 'failure'
+        run: terraform apply -replace=aws_apigatewayv2_api.main -var-file=environments/dev.tfvars -auto-approve
