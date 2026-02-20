@@ -31,3 +31,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "allow_api_gateway_invoke" {
+  description = "If set, adds resource policy allowing API Gateway to invoke this Lambda"
+  type        = bool
+  default     = false
+}
+
+variable "api_gateway_execution_arn" {
+  description = "API Gateway execution ARN for Lambda permission (required when allow_api_gateway_invoke=true)"
+  type        = string
+  default     = ""
+}
