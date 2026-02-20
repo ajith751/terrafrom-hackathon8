@@ -1,0 +1,9 @@
+# Copy to backend.hcl and fill in your values
+# cp backend.hcl.example backend.hcl
+# Add backend.hcl to .gitignore (contains bucket name)
+
+bucket         = "hackathon8-terraform-state"
+key            = "healthcare-microservices/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "terraform-state-lock"
+encrypt        = true

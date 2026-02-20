@@ -1,0 +1,65 @@
+# Shared Infrastructure - Terraform CI/CD
+# One infra for Patient + Appointment services (decoupled repos)
+
+name: Terraform
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Create backend config
+        env:
+          TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
+          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}
+          TF_BACKEND_REGION: ${{ secrets.TF_BACKEND_REGION }}
+          TF_BACKEND_DYNAMODB: ${{ secrets.TF_BACKEND_DYNAMODB_TABLE }}
+        run: |
+          if [ -n "$TF_BACKEND_BUCKET" ]; then
+            echo "bucket         = \"$TF_BACKEND_BUCKET\"" > backend.hcl
+            echo "key            = \"${TF_BACKEND_KEY:-healthcare-microservices/terraform.tfstate}\"" >> backend.hcl
+            echo "region         = \"${TF_BACKEND_REGION:-us-east-1}\"" >> backend.hcl
+            echo "dynamodb_table = \"${TF_BACKEND_DYNAMODB:-terraform-state-lock}\"" >> backend.hcl
+            echo "encrypt        = true" >> backend.hcl
+          fi
+
+      - name: Terraform init
+        run: |
+          if [ -f backend.hcl ]; then
+            terraform init -backend-config=backend.hcl
+          else
+            terraform init
+          fi
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        run: terraform plan -var-file=environments/dev.tfvars -no-color
+
+      - name: Terraform apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -var-file=environments/dev.tfvars -auto-approve

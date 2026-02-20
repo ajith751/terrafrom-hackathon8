@@ -1,0 +1,94 @@
+# API Gateway - Single source of truth
+# Lambda ARNs injected by Terraform templatefile()
+
+openapi: 3.0.3
+info:
+  title: Healthcare Microservices API
+  version: 1.0.0
+
+paths:
+  /:
+    get:
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${patient_lambda_invoke_arn}"
+
+  /health:
+    get:
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${patient_lambda_invoke_arn}"
+
+  /patients:
+    get:
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${patient_lambda_invoke_arn}"
+    post:
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${patient_lambda_invoke_arn}"
+
+  /patients/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${patient_lambda_invoke_arn}"
+
+  /appointments:
+    get:
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${appointment_lambda_invoke_arn}"
+    post:
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${appointment_lambda_invoke_arn}"
+
+  /appointments/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${appointment_lambda_invoke_arn}"
+
+  /appointments/patient/{patientId}:
+    get:
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        payloadFormatVersion: "2.0"
+        uri: "${appointment_lambda_invoke_arn}"
