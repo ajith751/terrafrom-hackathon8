@@ -34,7 +34,7 @@ module "ecr" {
   for_each = var.services
 
   repository_name = "${var.project_name}-${each.value.ecr_name}"
-  tags           = local.common_tags
+  tags            = local.common_tags
 }
 
 module "lambda" {
@@ -58,7 +58,7 @@ resource "aws_apigatewayv2_api" "main" {
   name          = "${var.project_name}-api-${var.environment}"
   protocol_type = "HTTP"
   body = templatefile("${path.module}/openapi.yaml", {
-    patient_lambda_invoke_arn    = module.lambda["patient"].invoke_arn
+    patient_lambda_invoke_arn     = module.lambda["patient"].invoke_arn
     appointment_lambda_invoke_arn = module.lambda["appointment"].invoke_arn
   })
 
